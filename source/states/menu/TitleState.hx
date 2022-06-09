@@ -35,6 +35,8 @@ import lime.app.Application;
 import openfl.Assets;
 
 using StringTools;
+// simplicity.
+using engine.io.Modding;
 
 class TitleState extends MusicBeatState
 {
@@ -52,7 +54,19 @@ class TitleState extends MusicBeatState
 
 	override public function create():Void
 	{
-		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 1)
+		Modding.init();
+		trace(Modding.weeks);
+
+		if (FlxG.save.data.UP == null)
+			FlxG.save.data.UP = "W";
+		if (FlxG.save.data.DOWN == null)
+			FlxG.save.data.DOWN = "S";
+		if (FlxG.save.data.LEFT == null)
+			FlxG.save.data.LEFT = "A";
+		if (FlxG.save.data.RIGHT == null)
+			FlxG.save.data.RIGHT = "D";
+
+		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 0)
 			{
 				FlxG.camera.antialiasing = true;
 			}
@@ -73,7 +87,7 @@ class TitleState extends MusicBeatState
 
 		super.create();
 
-		FlxG.save.bind('funkin', 'ninjamuffin99');
+		FlxG.save.bind('funkin', 'thepercentageguy');
 
 		Highscore.load();
 

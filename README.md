@@ -14,7 +14,6 @@ Support the project on the itch.io page: https://ninja-muffin24.itch.io/funkin
 IF YOU MAKE A MOD AND DISTRIBUTE A MODIFIED / RECOMPILED VERSION, YOU MUST OPEN SOURCE YOUR MOD AS WELL
 
 ## Credits / shoutouts
-
 - [thepercentageguy](https://twitter.com/PercentageGuy) - Mod Programmer, Engine Creator
 - [Trigger_](https://www.instagram.com/trigger_drawings/) - Director, Artist, Animator of the mod
 - [TheHipOne](https://twitter.com/thehipone1) - Musician

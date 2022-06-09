@@ -48,7 +48,7 @@ class OptionsMenu extends MusicBeatState
 
 	override function create()
 	{
-		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 1)
+		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 0)
 			{
 				FlxG.camera.antialiasing = true;
 			}
@@ -60,21 +60,25 @@ class OptionsMenu extends MusicBeatState
 		optionGroups = [
 			new OptionGroup("Graphics", [
 				new CycleOption("Antialiasing %v", "Decides whether edges on sprites should be smooth. Affects performance.", ["On", "Off"], "GRAPHICS_globalAA"),
-				new CycleOption("Lite Mode %v", "Only draws HUD elements when enabled.", ["Off", "On"], "GRAPHICS_liteMode"),
+				new CycleOption("Focus Mode %v", "Only draws HUD elements when enabled.", ["Off", "On"], "GRAPHICS_liteMode"),
 			]),
 			new OptionGroup("Gameplay", [
 				new CycleOption("Show Score Text %v", "Whether to show the score text or not", ["On", "Off"], "GAMEPLAY_showScoreTxt"),
+				//! broken! new CycleOption("Difficult Jacks %v", "With this option turned off, you only need to press once to trigger both notes.", ["On", "Off"], "GAMEPLAY_difficultJacks"),
+				new CycleOption("Ghost Tapping %v", "When enabled, you will not get a miss for pressing a key without a note.", ["On", "Off"], "GAMEPLAY_ghostTapping"),
+				new CycleOption("Botplay %v", "Whether the game plays itself or not", ["Off", "On"], "GAMEPLAY_botplay"),
+				new CycleOption("Downscroll %v", "Downscroll.", ["Off", "On"], "GAMEPLAY_downscroll"),
+				new FunctionOption("Set Keybinds", "Opens the keybind menu.", () -> {
+					FlxG.switchState(new KeybindState());
+				}),
 			]),
 			new OptionGroup("Misc", [
-				new FunctionOption("Reset Option", "Resets all options to their default values.", clearOptions)
+				new FunctionOption("Reset Option", "Resets all options to their default values.", clearOptions),
+				new FunctionOption("Reset Everything", "Resets everything stored in the save file.", () -> {
+					resetBinds();
+					FlxG.save.erase();
+				})
 			]),
-			#if debug
-			new OptionGroup("Debug", [
-				new RangeOption("Good Timing %v", "Controls the timing window of good", 40, 100, 5, "DEBUG_goodTiming"),
-				new RangeOption("Bad Timing %v", "Controls the timing window of bad", 60, 100, 5, "DEBUG_badTiming"),
-				new RangeOption("Shit Timing %v", "Controls the timing window of shit", 75, 100, 5, "DEBUG_shitTiming"),
-			])
-			#end
 		];
 
 		transIn = FlxTransitionableState.defaultTransIn;
@@ -148,6 +152,15 @@ class OptionsMenu extends MusicBeatState
 	override function update(elapsed:Float)
 	{
 		
+		if (FlxG.save.data.UP == null)
+			FlxG.save.data.UP = "W";
+		if (FlxG.save.data.DOWN == null)
+			FlxG.save.data.DOWN = "S";
+		if (FlxG.save.data.LEFT == null)
+			FlxG.save.data.LEFT = "A";
+		if (FlxG.save.data.RIGHT == null)
+			FlxG.save.data.RIGHT = "D";
+
 		selectorSprite.y = categoryBG.y + (curSelectedGroup * Std.int(FlxG.height * 0.05)) + curSelectedGroup * 2;
 
 		if (inGroup)
@@ -394,6 +407,23 @@ class OptionsMenu extends MusicBeatState
 	{
 		valueMap.clear();
 		updateMenu();
+		for (group in optionGroups)
+		{
+			for (option in group.options)
+			{
+				if (Std.isOfType(option, CycleOption))
+				{
+					(option : CycleOption).curValue = 0;
+					valueMap[option.saveTo] = 0;
+				}
+				else if (Std.isOfType(option, RangeOption))
+				{
+					(option : RangeOption).curValue = (option : RangeOption).min;
+					valueMap[option.saveTo] = (option : RangeOption).min;
+				}
+			}
+		}
+		resetBinds();
 	}
 
 	function updateFPS() {
@@ -405,6 +435,21 @@ class OptionsMenu extends MusicBeatState
 			FlxG.drawFramerate = valueMap["GRAPHICS_fpsCap"];
 			FlxG.updateFramerate = valueMap["GRAPHICS_fpsCap"];
 		}
+	}
+
+	function resetBinds()
+	{
+		controls.unbindKeys(Control.LEFT, [FlxKey.fromString(FlxG.save.data.LEFT), FlxKey.LEFT]);
+		controls.bindKeys(Control.LEFT, [FlxKey.fromString("A"), FlxKey.LEFT]);
+
+		controls.unbindKeys(Control.RIGHT, [FlxKey.fromString(FlxG.save.data.RIGHT), FlxKey.RIGHT]);
+		controls.bindKeys(Control.RIGHT, [FlxKey.fromString("D"), FlxKey.RIGHT]);
+
+		controls.unbindKeys(Control.UP, [FlxKey.fromString(FlxG.save.data.UP), FlxKey.UP]);
+		controls.bindKeys(Control.UP, [FlxKey.fromString("W"), FlxKey.UP]);
+
+		controls.unbindKeys(Control.DOWN, [FlxKey.fromString(FlxG.save.data.DOWN), FlxKey.DOWN]);
+		controls.bindKeys(Control.DOWN, [FlxKey.fromString("S"), FlxKey.DOWN]);
 	}
 }
 

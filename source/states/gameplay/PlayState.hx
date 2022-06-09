@@ -1,5 +1,8 @@
 package states.gameplay;
 
+import engine.io.Modding;
+import sys.FileSystem;
+import states.menu.RatingState;
 import engine.functions.Option;
 import states.menu.FreeplayState;
 import states.menu.LoadingState;
@@ -149,6 +152,11 @@ class PlayState extends MusicBeatState
 
 	var inCutscene:Bool = false;
 
+	public static var sicks:Int;
+	public static var goods:Int;
+	public static var bads:Int;
+	public static var shits:Int;
+
 	#if desktop
 	// Discord RPC variables
 	var storyDifficultyText:String = "";
@@ -157,6 +165,10 @@ class PlayState extends MusicBeatState
 	var detailsText:String = "";
 	var detailsPausedText:String = "";
 	#end
+
+	public static var mod:String = "";
+
+	var botplay:Bool = Option.recieveValue("GAMEPLAY_botplay") == 1;
 
 	override public function create()
 	{
@@ -195,7 +207,7 @@ class PlayState extends MusicBeatState
 		}
 
 		if (SONG == null)
-			SONG = Song.loadFromJson('tutorial');
+			SONG = Song.loadFromJson('tutorial', null, null);
 
 		Conductor.mapBPMChanges(SONG);
 		Conductor.changeBPM(SONG.bpm);
@@ -729,6 +741,8 @@ class PlayState extends MusicBeatState
 		Conductor.songPosition = -5000;
 
 		strumLine = new FlxSprite(0, 50).makeGraphic(FlxG.width, 10);
+		if (Option.recieveValue("GAMEPLAY_downscroll") == 1)
+			strumLine.y = FlxG.height - 130;
 		strumLine.scrollFactor.set();
 
 		strumLineNotes = new FlxTypedGroup<FlxSprite>();
@@ -763,7 +777,7 @@ class PlayState extends MusicBeatState
 
 		FlxG.fixedTimestep = false;
 
-		healthBarBG = new FlxSprite(0, FlxG.height * 0.9).loadGraphic(Paths.image('healthBar'));
+		healthBarBG = new FlxSprite(0, (Option.recieveValue("GAMEPLAY_downscroll") == 0) ? FlxG.height * 0.9 : 50).loadGraphic(Paths.image('healthBar'));
 		healthBarBG.screenCenter(X);
 		healthBarBG.scrollFactor.set();
 		add(healthBarBG);
@@ -1085,7 +1099,23 @@ class PlayState extends MusicBeatState
 		lastReportedPlayheadPosition = 0;
 
 		if (!paused)
-			FlxG.sound.playMusic(Paths.inst(PlayState.SONG.song), 1, false);
+		{
+			if (FileSystem.exists(Paths.inst(PlayState.SONG.song)))
+			{
+				FlxG.sound.playMusic(Paths.inst(PlayState.SONG.song), 1, false);
+			}
+			else
+			{
+				if (mod != "")
+				{
+					FlxG.sound.playMusic(Modding.api.getSoundShit("/songs/" + PlayState.SONG.song + "/Inst." + Paths.SOUND_EXT, Modding.findModOfName(mod)));
+				}
+				else
+				{
+					FlxG.sound.playMusic(Modding.api.getSoundShit("/songs/" + PlayState.SONG.song + "/Inst." + Paths.SOUND_EXT));
+				}
+			}
+		}
 		FlxG.sound.music.onComplete = endSong;
 		vocals.play();
 
@@ -1110,7 +1140,23 @@ class PlayState extends MusicBeatState
 		curSong = songData.song;
 
 		if (SONG.needsVoices)
-			vocals = new FlxSound().loadEmbedded(Paths.voices(PlayState.SONG.song));
+		{
+			if (FileSystem.exists(Paths.voices(PlayState.SONG.song)))
+			{
+				vocals = new FlxSound().loadEmbedded(Paths.voices(PlayState.SONG.song));
+			}
+			else
+			{
+				if (mod != "")
+				{
+					vocals = new FlxSound().loadEmbedded(Modding.api.getSoundShit("/songs/" + PlayState.SONG.song + "/Voices." + Paths.SOUND_EXT, Modding.findModOfName(mod)));
+				}
+				else
+				{
+					vocals = new FlxSound().loadEmbedded(Modding.api.getSoundShit("/songs/" + PlayState.SONG.song + "/Voices." + Paths.SOUND_EXT));
+				}
+			}
+		}
 		else
 			vocals = new FlxSound();
 
@@ -1429,9 +1475,11 @@ class PlayState extends MusicBeatState
 
 		super.update(elapsed);
 
-		scoreTxt.text = 'Score: ${songScore} - '+
+		scoreTxt.text = !botplay ? 'Score: ${songScore} - '+
 		'Combo: ${combo} - '+
-		'Misses: ${misses}';
+		'Misses: ${misses} - ' +
+		'Hit %: ${(sicks + goods + bads + shits + misses == 0) ? 0 : (sicks + goods + bads + shits) / (sicks + goods + bads + shits + misses) * 100}%'
+		: 'BOTPLAY ENABLED';
 
 		if (FlxG.keys.justPressed.ENTER && startedCountdown && canPause)
 		{
@@ -1655,6 +1703,12 @@ class PlayState extends MusicBeatState
 			vocals.stop();
 			FlxG.sound.music.stop();
 
+			misses = 0;
+			sicks = 0;
+			goods = 0;
+			bads = 0;
+			shits = 0;
+
 			openSubState(new GameOverSubstate(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
 
 			// FlxG.switchState(new GameOverState(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
@@ -1692,7 +1746,10 @@ class PlayState extends MusicBeatState
 					daNote.active = true;
 				}
 
-				daNote.y = (strumLine.y - (Conductor.songPosition - daNote.strumTime) * (0.45 * FlxMath.roundDecimal(SONG.speed, 2)));
+				if (Option.recieveValue("GAMEPLAY_downscroll") == 0)
+					daNote.y = (strumLine.y - (Conductor.songPosition - daNote.strumTime) * (0.45 * FlxMath.roundDecimal(SONG.speed, 2)));
+				else
+					daNote.y = (strumLine.y + (Conductor.songPosition - daNote.strumTime) * (0.45 * FlxMath.roundDecimal(SONG.speed, 2)));
 
 				// i am so fucking sorry for this if condition
 				if (daNote.isSustainNote
@@ -1744,11 +1801,12 @@ class PlayState extends MusicBeatState
 				// WIP interpolation shit? Need to fix the pause issue
 				// daNote.y = (strumLine.y - (songTime - daNote.strumTime) * (0.45 * PlayState.SONG.speed));
 
-				if (daNote.y < -daNote.height)
+				if ((Option.recieveValue("GAMEPLAY_downscroll") == 0) ? daNote.y < -daNote.height : daNote.y > FlxG.height + daNote.height)
 				{
 					if (daNote.tooLate || !daNote.wasGoodHit)
 					{
 						misses++;
+						combo = 0;
 						health -= 0.0475;
 						vocals.volume = 0;
 					}
@@ -1796,8 +1854,13 @@ class PlayState extends MusicBeatState
 
 				transIn = FlxTransitionableState.defaultTransIn;
 				transOut = FlxTransitionableState.defaultTransOut;
-
-				FlxG.switchState(new StoryMenuState());
+				
+				FlxG.switchState(new RatingState(misses, sicks, goods, bads, shits, new StoryMenuState()));
+				misses = 0;
+				sicks = 0;
+				goods = 0;
+				bads = 0;
+				shits = 0;
 
 				// if ()
 				StoryMenuState.weekUnlocked[Std.int(Math.min(storyWeek + 1, StoryMenuState.weekUnlocked.length - 1))] = true;
@@ -1838,7 +1901,8 @@ class PlayState extends MusicBeatState
 				FlxTransitionableState.skipNextTransOut = true;
 				prevCamFollow = camFollow;
 
-				PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0].toLowerCase() + difficulty, PlayState.storyPlaylist[0]);
+				// TODO: ADD THIS
+				PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0].toLowerCase() + difficulty, PlayState.storyPlaylist[0], mod != "" ? Modding.findModOfName(mod) : null);
 				FlxG.sound.music.stop();
 
 				LoadingState.loadAndSwitchState(new PlayState());
@@ -1847,7 +1911,12 @@ class PlayState extends MusicBeatState
 		else
 		{
 			trace('WENT BACK TO FREEPLAY??');
-			FlxG.switchState(new FreeplayState());
+			FlxG.switchState(new RatingState(misses, sicks, goods, bads, shits, new StoryMenuState()));
+			misses = 0;
+			sicks = 0;
+			goods = 0;
+			bads = 0;
+			shits = 0;
 		}
 	}
 
@@ -1869,21 +1938,26 @@ class PlayState extends MusicBeatState
 
 		var daRating:String = "sick";
 
-		if (offset > Std.int(Option.recieveValue("DEBUG_shitTiming")) || offset < -Std.int(Option.recieveValue("DEBUG_shitTiming")))
+		if (offset > 70 || offset < -70)
 		{
 			daRating = 'shit';
+			shits++;
 			score = 50;
 		}
-		else if (offset > Std.int(Option.recieveValue("DEBUG_badTiming")) || offset < -Std.int(Option.recieveValue("DEBUG_badTiming")))
+		else if (offset > 50 || offset < -50)
 		{
 			daRating = 'bad';
+			bads++;
 			score = 100;
 		}
-		else if (offset > Std.int(Option.recieveValue("DEBUG_goodTiming")) || offset < -Std.int(Option.recieveValue("DEBUG_goodTiming")))
+		else if (offset > 36 || offset < -36)
 		{
 			daRating = 'good';
+			goods++;
 			score = 200;
 		}
+		else
+			sicks++;
 
 		songScore += score;
 
@@ -2007,6 +2081,8 @@ class PlayState extends MusicBeatState
 
 	private function keyShit():Void
 	{
+		// don't touch, it works and is weirdly fragile
+		
 		// re-writing this from scratch because the old input system fucking sucks
 		// this input system is distance-based.
 		// it compares the notes to the Y position of the strum line to get the rating.
@@ -2029,18 +2105,60 @@ class PlayState extends MusicBeatState
 		var downR = controls.DOWN_R;
 		var leftR = controls.LEFT_R;
 
-		if (upP)
+		var upPressed = false;
+		var rightPressed = false;
+		var downPressed = false;
+		var leftPressed = false;
+
+		if (botplay)
 		{
-			if (!FlxG.overlap(notes, playerStrums))
+			notes.forEachAlive(function(note:Note)
+			{
+				if (note.mustPress && FlxG.overlap(playerStrums, note) && note.y <= strumY && !note.isSustainNote)
+				{
+					boyfriend.holdTimer = 0;
+					// if all conditions are met, then we hit the note.
+					
+					// find timing.
+					var timing = note.y - strumY;
+					trace('BP TIMING ' + timing);
+
+					goodNoteHit(note);
+
+					popUpScore(timing);
+
+					new FlxTimer().start(0.2, (_) -> {
+						if (!FlxG.overlap(playerStrums.members[note.noteData], notes))
+							playerStrums.members[note.noteData].animation.play("static");
+					});
+				}
+				else if (note.mustPress && FlxG.overlap(playerStrums, note) && note.isSustainNote)
+				{
+					goodNoteHit(note);
+
+					new FlxTimer().start(0.2, (_) -> {
+						if (!FlxG.overlap(playerStrums.members[note.noteData], notes))
+							playerStrums.members[note.noteData].animation.play("static");
+					});
+				}
+			});
+		}
+
+		if (upP && !botplay)
+		{
+			boyfriend.holdTimer = 0;
+			if (!FlxG.overlap(notes, playerStrums) && Option.recieveValue("GAMEPLAY_ghostTapping") == 1)
 			{
 				// we didn't hit shit.
-
+				
 				noteMiss(2);
 			}
 			notes.forEachAlive(function(note:Note)
 			{
-				if (note.noteData == 2 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote)
+				if (!note.wasGoodHit && note.noteData == 2 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote && !upPressed)
 				{
+					if (Option.recieveValue("GAMEPLAY_difficultJacks") == 1)
+						upPressed = true;
 					// if all conditions are met, then we hit the note.
 					
 					// find timing.
@@ -2054,18 +2172,21 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (downP)
+		if (downP && !botplay)
 		{
-			if (!FlxG.overlap(notes, playerStrums))
+			boyfriend.holdTimer = 0;
+			if (!FlxG.overlap(notes, playerStrums) && Option.recieveValue("GAMEPLAY_ghostTapping") == 1)
 			{
 				// we didn't hit shit.
-
+				
 				noteMiss(1);
 			}
 			notes.forEachAlive(function(note:Note)
 			{
-				if (note.noteData == 1 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote)
+				if (!note.wasGoodHit && note.noteData == 1 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote && !downPressed)
 				{
+					if (Option.recieveValue("GAMEPLAY_difficultJacks") == 1)
+						downPressed = true;
 					// if all conditions are met, then we hit the note.
 					
 					// find timing.
@@ -2079,9 +2200,10 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (leftP)
+		if (leftP && !botplay)
 		{
-			if (!FlxG.overlap(notes, playerStrums))
+			boyfriend.holdTimer = 0;
+			if (!FlxG.overlap(notes, playerStrums) && Option.recieveValue("GAMEPLAY_ghostTapping") == 1)
 			{
 				// we didn't hit shit.
 
@@ -2089,8 +2211,10 @@ class PlayState extends MusicBeatState
 			}
 			notes.forEachAlive(function(note:Note)
 			{
-				if (note.noteData == 0 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote)
+				if (!note.wasGoodHit && note.noteData == 0 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote && !leftPressed)
 				{
+					if (Option.recieveValue("GAMEPLAY_difficultJacks") == 1)
+						leftPressed = true;
 					// if all conditions are met, then we hit the note.
 					
 					// find timing.
@@ -2104,9 +2228,10 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (rightP)
+		if (rightP && !botplay)
 		{
-			if (!FlxG.overlap(notes, playerStrums))
+			boyfriend.holdTimer = 0;
+			if (!FlxG.overlap(notes, playerStrums) && Option.recieveValue("GAMEPLAY_ghostTapping") == 1)
 			{
 				// we didn't hit shit.
 
@@ -2114,8 +2239,10 @@ class PlayState extends MusicBeatState
 			}
 			notes.forEachAlive(function(note:Note)
 			{
-				if (note.noteData == 3 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote)
+				if (!note.wasGoodHit && note.noteData == 3 && note.mustPress && FlxG.overlap(playerStrums, note) && !note.isSustainNote && !rightPressed)
 				{
+					if (Option.recieveValue("GAMEPLAY_difficultJacks") == 1)
+						rightPressed = true;
 					// if all conditions are met, then we hit the note.
 					
 					// find timing.
@@ -2129,7 +2256,7 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (up)
+		if (up && !botplay)
 		{
 			notes.forEachAlive(function(note:Note)
 			{
@@ -2148,7 +2275,7 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (left)
+		if (left && !botplay)
 		{
 			notes.forEachAlive(function(note:Note)
 			{
@@ -2167,7 +2294,7 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (right)
+		if (right && !botplay)
 		{
 			notes.forEachAlive(function(note:Note)
 			{
@@ -2186,7 +2313,7 @@ class PlayState extends MusicBeatState
 			});
 		}
 
-		if (down)
+		if (down && !botplay)
 		{
 			notes.forEachAlive(function(note:Note)
 			{
@@ -2203,6 +2330,14 @@ class PlayState extends MusicBeatState
 					// popUpScore(timing);
 				}
 			});
+		}
+
+		if (boyfriend.holdTimer > Conductor.stepCrochet * 4 * 0.001 && !up && !down && !right && !left)
+		{
+			if (boyfriend.animation.curAnim.name.startsWith('sing') && !boyfriend.animation.curAnim.name.endsWith('miss'))
+			{
+				boyfriend.playAnim('idle');
+			}
 		}
 
 		playerStrums.forEach(function(spr:FlxSprite)

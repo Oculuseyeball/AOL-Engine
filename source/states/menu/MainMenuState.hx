@@ -37,7 +37,7 @@ class MainMenuState extends MusicBeatState
 
 	override function create()
 	{
-		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 1)
+		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 0)
 			{
 				FlxG.camera.antialiasing = true;
 			}
@@ -106,7 +106,7 @@ class MainMenuState extends MusicBeatState
 
 		FlxG.camera.follow(camFollow, null, 0.06);
 
-		var versionShit:FlxText = new FlxText(5, FlxG.height - 18, 0, 'v${Application.current.meta.get('version')} - FNF# Engine', 12);
+		var versionShit:FlxText = new FlxText(5, FlxG.height - 18, 0, 'v${Application.current.meta.get('version')} - FNF# Engine' #if js + ' DEMO MODE' #end, 12);
 		versionShit.scrollFactor.set();
 		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(versionShit);
