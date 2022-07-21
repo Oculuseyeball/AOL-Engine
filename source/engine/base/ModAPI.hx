@@ -1,5 +1,7 @@
 package engine.base;
 
+import openfl.display.BitmapData;
+import flixel.graphics.frames.FlxAtlasFrames;
 import openfl.media.Sound;
 import haxe.Json;
 import sys.io.File;
@@ -89,7 +91,6 @@ class ModAPI
                 }
             }
         }
-        trace("Final shit: " + shit);
         return shit;
     }
 
@@ -117,6 +118,104 @@ class ModAPI
         }
         return shit;
     }
+
+    public function getImageShit(path:String, ?mod:Mod):BitmapData
+    {
+        trace("looking for image file: " + path);
+        var shit:BitmapData = null;
+        if (mod != null)
+        {
+            trace("getting the path: " + mod.path + path);
+            shit = BitmapData.fromFile(mod.path + path);
+        }
+        else
+        {
+            for (mod in loaded)
+            {
+                trace("scanning mod: " + mod.name);
+                if (FileSystem.exists(mod.path + path))
+                {
+                    trace("getting the path: " + mod.path + path);
+                    shit = BitmapData.fromFile(mod.path + path);
+                    break;
+                }
+            }
+        }
+        return shit;
+    }
+
+    public function getSparrowShit(pathPng:String, pathXml:String, ?mod:Mod):FlxAtlasFrames
+    {
+        trace("looking for sparrow file: " + pathPng);
+        var shit:FlxAtlasFrames = null;
+        if (mod != null)
+        {
+            trace("getting the path: " + pathPng);
+            shit = FlxAtlasFrames.fromSparrow(getImageShit(pathPng, mod), getTextShit(pathXml, mod));
+        }
+        else 
+        {
+            for (mod in loaded)
+            {
+                trace("scanning mod: " + mod.name);
+                trace("looking for image file: " + mod.path + pathPng);
+                if (FileSystem.exists(mod.path + pathPng))
+                {
+                    trace("getting the path: " +  pathPng);
+                    shit = FlxAtlasFrames.fromSparrow(getImageShit(pathPng, mod), getTextShit(pathXml, mod));
+                    break;
+                }
+            }
+        }
+        return shit;
+    }
+
+    public function getPackerShit(pathPng:String, pathXml:String, ?mod:Mod):FlxAtlasFrames
+    {
+        trace("looking for sparrow file: " + pathPng);
+        var shit:FlxAtlasFrames = null;
+        if (mod != null)
+        {
+            trace("getting the path: " + pathPng);
+            shit = FlxAtlasFrames.fromSpriteSheetPacker(getImageShit(pathPng, mod), getTextShit(pathXml, mod));
+        }
+        else 
+        {
+            for (mod in loaded)
+            {
+                trace("scanning mod: " + mod.name);
+                if (FileSystem.exists(pathPng))
+                {
+                    trace("getting the path: " +  pathPng);
+                    shit = FlxAtlasFrames.fromSpriteSheetPacker(getImageShit(pathPng, mod), getTextShit(pathXml, mod));
+                    break;
+                }
+            }
+        }
+        return shit;
+    }
+
+    public function getCharShit(charName:String):CusChar
+    {
+        var char:CusChar = null;
+        for (mod in loaded)
+        {
+            var rawJson = File.getContent(mod.path + "/chars.json");
+            trace("Parsing chars.json for mod: " + mod.name);
+            var thing:CharJSON = Json.parse(rawJson);
+            for (charT in thing.chars)
+            {
+                if (charT.name == charName)
+                {
+                    char = charT;
+                    break;
+                }
+            }
+            if (char != null)
+                break;
+        }
+        return char;
+    }
 }
 
 typedef Mod = 
@@ -135,5 +234,25 @@ typedef Week =
 {
     name:String,
     graphic:String,
+    libInclude:Array<String>,
     songs:Array<String>
+}
+
+typedef CharJSON = {
+	var chars:Array<CusChar>;
+}
+
+typedef CusChar = {
+	var name:String;
+	var graphic:String;
+    var color:String;
+    var flipX:Bool;
+	var animations:Array<CharAnim>;
+}
+
+typedef CharAnim = {
+	var name:String;
+	var anim:String;
+	var offsetX:Int;
+	var offsetY:Int;
 }

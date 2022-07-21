@@ -187,7 +187,7 @@ class StoryMenuState extends MusicBeatState
 						weekData.push(week.songs.copy());
 						weekCharacters.push(["dad", "bf", "gf"]);
 						weekUnlocked.push(true);
-						weekNames.push(week.name);
+						weekNames.push('[MOD] ' + week.name);
 						weekModded.set(week.name, mod.name);
 						index++;
 					}
@@ -382,6 +382,7 @@ class StoryMenuState extends MusicBeatState
 			PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0].toLowerCase() + diffic, PlayState.storyPlaylist[0].toLowerCase(), weekModded[weekNames[curWeek]] != null ? Modding.findModOfName(weekModded[weekNames[curWeek]]) : null);
 			PlayState.storyWeek = curWeek;
 			PlayState.campaignScore = 0;
+			PlayState.startFrom = 0;
 			new FlxTimer().start(1, function(tmr:FlxTimer)
 			{
 				LoadingState.loadAndSwitchState(new PlayState(), true);

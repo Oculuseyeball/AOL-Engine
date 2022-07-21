@@ -63,7 +63,7 @@ class OptionsMenu extends MusicBeatState
 				new CycleOption("Focus Mode %v", "Only draws HUD elements when enabled.", ["Off", "On"], "GRAPHICS_liteMode"),
 			]),
 			new OptionGroup("Gameplay", [
-				new CycleOption("Show Score Text %v", "Whether to show the score text or not", ["On", "Off"], "GAMEPLAY_showScoreTxt"),
+				new CycleOption("%v Score Text", "How to show the Score Text", ["New", "Old", "Hidden"], "GAMEPLAY_scoreTxtMode"),
 				//! broken! new CycleOption("Difficult Jacks %v", "With this option turned off, you only need to press once to trigger both notes.", ["On", "Off"], "GAMEPLAY_difficultJacks"),
 				new CycleOption("Ghost Tapping %v", "When enabled, you will not get a miss for pressing a key without a note.", ["On", "Off"], "GAMEPLAY_ghostTapping"),
 				new CycleOption("Botplay %v", "Whether the game plays itself or not", ["Off", "On"], "GAMEPLAY_botplay"),
@@ -72,12 +72,19 @@ class OptionsMenu extends MusicBeatState
 					FlxG.switchState(new KeybindState());
 				}),
 			]),
+			new OptionGroup("Fun", [
+				new CycleOption("Instadeath %v", "For those who want an actual challenge", ["Off", "On"], "FUN_instadeath")
+			]),
 			new OptionGroup("Misc", [
+				new FunctionOption("Mod Manager", "Opens the mod manager.", () -> {
+					FlxG.switchState(new ModManagerState());
+				}),
 				new FunctionOption("Reset Option", "Resets all options to their default values.", clearOptions),
 				new FunctionOption("Reset Everything", "Resets everything stored in the save file.", () -> {
 					resetBinds();
 					FlxG.save.erase();
-				})
+				}),
+				// new CycleOption("Enable experimental charter %v", "Enable new charter", ["Off", "On"], "MISC_newCharter")
 			]),
 		];
 
@@ -330,6 +337,8 @@ class OptionsMenu extends MusicBeatState
 	{
 		// not copied from sublim engine, at all.	
 		// updateFPS();
+
+		headerText.text = optionGroups[curSelectedGroup].name;
 
 		if (inGroup && !focusedOnRange)
 			descriptionText.text = optionGroups[curSelectedGroup].options[curSelectedOption].description;

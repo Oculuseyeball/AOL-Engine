@@ -17,8 +17,12 @@ class Note extends FlxSprite
 {
 	public var strumTime:Float = 0;
 
+	// used only in the chart editor
+	public var wasStrummed:Bool = false;
+
 	public var mustPress:Bool = false;
 	public var noteData:Int = 0;
+	public var anim:String = "";
 	public var canBeHit:Bool = false;
 	public var tooLate:Bool = false;
 	public var wasGoodHit:Bool = false;
@@ -35,7 +39,7 @@ class Note extends FlxSprite
 	public static var BLUE_NOTE:Int = 1;
 	public static var RED_NOTE:Int = 3;
 
-	public function new(strumTime:Float, noteData:Int, ?prevNote:Note, ?sustainNote:Bool = false)
+	public function new(strumTime:Float, noteData:Int, anim:String, ?prevNote:Note, ?sustainNote:Bool = false)
 	{
 		super();
 
@@ -44,6 +48,8 @@ class Note extends FlxSprite
 
 		this.prevNote = prevNote;
 		isSustainNote = sustainNote;
+
+		this.anim = anim;
 
 		x += 50;
 		// MAKE SURE ITS DEFINITELY OFF SCREEN?
@@ -176,9 +182,9 @@ class Note extends FlxSprite
 
 		if (mustPress)
 		{
-			// The * 0.5 is so that it's easier to hit them too late, instead of too early
+			var funcyOffset:Float = FlxMath.remapToRange(PlayState.SONG.speed, 1, 3, 0.75, 0.5);
 			if (strumTime > Conductor.songPosition - Conductor.safeZoneOffset
-				&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * 0.5))
+				&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * funcyOffset))
 				canBeHit = true;
 			else
 				canBeHit = false;
