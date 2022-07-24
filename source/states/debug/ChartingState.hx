@@ -267,6 +267,7 @@ class ChartingState extends MusicBeatState
 	{
 		var chars:Array<String> = [];
 		chars = CoolUtil.coolTextFile(Paths.txt('characterList'));
+		/*
 		for (mod in Modding.api.loaded)
 		{
 			var shit:CharJSON = Json.parse(Modding.api.getTextShit("/chars.json", mod));
@@ -275,6 +276,7 @@ class ChartingState extends MusicBeatState
 				chars.push(char.name);
 			}
 		}
+		*/
 		return chars;
 	}
 

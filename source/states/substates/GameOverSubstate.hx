@@ -1,5 +1,7 @@
 package states.substates;
 
+import engine.io.Modding;
+import flixel.FlxSprite;
 import engine.functions.Conductor;
 import engine.io.Paths;
 import states.gameplay.PlayState;
@@ -14,7 +16,8 @@ import flixel.util.FlxTimer;
 
 class GameOverSubstate extends MusicBeatSubstate
 {
-	var bf:Boyfriend;
+	var bf:FlxSprite;
+	var bf2:FlxSprite;
 	var camFollow:FlxObject;
 
 	var stageSuffix:String = "";
@@ -22,33 +25,37 @@ class GameOverSubstate extends MusicBeatSubstate
 	public function new(x:Float, y:Float)
 	{
 		if (engine.functions.Option.recieveValue("GRAPHICS_globalAA") == 0)
-			{
-				FlxG.camera.antialiasing = true;
-			}
-			else
-			{
-				FlxG.camera.antialiasing = false;
-			}
-
-		var daStage = PlayState.curStage;
-		var daBf:String = '';
-		switch (daStage)
 		{
-			case 'school':
-				stageSuffix = '-pixel';
-				daBf = 'bf-pixel-dead';
-			case 'schoolEvil':
-				stageSuffix = '-pixel';
-				daBf = 'bf-pixel-dead';
-			default:
-				daBf = 'bf';
+			FlxG.camera.antialiasing = true;
+		}
+		else
+		{
+			FlxG.camera.antialiasing = false;
 		}
 
 		super();
 
 		Conductor.songPosition = 0;
 
-		bf = new Boyfriend(x, y, daBf);
+		bf2 = new FlxSprite(x, y);
+		bf2.frames = Modding.getSparrow("BFDED2");
+		bf2.animation.addByPrefix("idle", "CBF dead 2 instance 1", 24, true, false);
+		bf2.visible = false;
+		bf2.animation.play("idle");
+		add(bf2);
+
+		bf = new FlxSprite(x, y);
+		bf.frames = Modding.getSparrow("BFDED1");
+		bf.animation.addByPrefix("idle", "CBF dead 1 instance 1", 24, false, false);
+		bf.animation.finishCallback = (name:String) -> {
+			FlxG.camera.fade(0xFFFFFFFF, 4, false, () -> {
+				FlxG.camera.fade(0xFFFFFFFF, true, true);
+				bf.visible = false;
+				bf2.visible = true;
+				bf2.animation.play("idle");
+			}, true);
+		};
+		bf.animation.play("idle");
 		add(bf);
 
 		camFollow = new FlxObject(bf.getGraphicMidpoint().x, bf.getGraphicMidpoint().y, 1, 1);
@@ -61,13 +68,16 @@ class GameOverSubstate extends MusicBeatSubstate
 		// FlxG.camera.focusOn(FlxPoint.get(FlxG.width / 2, FlxG.height / 2));
 		FlxG.camera.scroll.set();
 		FlxG.camera.target = null;
-
-		bf.playAnim('firstDeath');
 	}
+
+	var sinDingus = 0.0;
 
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
+
+		bf2.y = Math.sin(sinDingus) * 20;
+		sinDingus += 0.1;
 
 		if (controls.ACCEPT)
 		{
@@ -84,12 +94,12 @@ class GameOverSubstate extends MusicBeatSubstate
 				FlxG.switchState(new states.menu.FreeplayState());
 		}
 
-		if (bf.animation.curAnim.name == 'firstDeath' && bf.animation.curAnim.curFrame == 12)
+		if (bf.animation.curAnim.name == 'idle' && bf.animation.curAnim.curFrame == 12)
 		{
 			FlxG.camera.follow(camFollow, LOCKON, 0.01);
 		}
 
-		if (bf.animation.curAnim.name == 'firstDeath' && bf.animation.curAnim.finished)
+		if (bf.animation.curAnim.name == 'idle' && bf.animation.curAnim.finished)
 		{
 			FlxG.sound.playMusic(Paths.music('gameOver' + stageSuffix));
 		}
@@ -114,7 +124,6 @@ class GameOverSubstate extends MusicBeatSubstate
 		if (!isEnding)
 		{
 			isEnding = true;
-			bf.playAnim('deathConfirm', true);
 			FlxG.sound.music.stop();
 			FlxG.sound.play(Paths.music('gameOverEnd' + stageSuffix));
 			new FlxTimer().start(0.7, function(tmr:FlxTimer)
